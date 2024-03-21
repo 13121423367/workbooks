@@ -1,0 +1,22 @@
+groups:
+- name: demo
+  rules:
+  - alert: InstanceDown
+    # Condition for alerting
+    expr: up == 1
+    for: 1m
+    # Annotation - additional informational labels ti store more infomation
+    annotations:
+      title: Instace {{ $labels.instance }}  down
+      description: Instance {{ $labels.instance }} of {{ $labels.job }}  has been down for more than 1 minutes.
+    # Labels - additional labels to be attached to the alert
+    lables:
+      severity: 'critical'
+
+- alert: DiskwillFillIn12Hours
+  expr: predice_linear(node_filesystem_free_bytes{mountpoint="/"}[1h],12*3600)
+  for: 1m
+  labels:
+    severity: 'critical'
+  annotations:
+    discription:Disk on {{ $label.instance}} will fill in approximately 12 hours.

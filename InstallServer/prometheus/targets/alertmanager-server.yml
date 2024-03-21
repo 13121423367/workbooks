@@ -1,0 +1,4 @@
+- targets:
+  - 122.14.194.189:19093
+  lables:
+    app: alertmanager

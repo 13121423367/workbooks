@@ -1,0 +1,64 @@
+version: "3.1"
+
+services:
+  mq:
+    image: cangku.bmsmart.com.cn/rabbitmq:3.9.0
+    restart: always
+    ports:
+      - "5672:5672"    #app
+      - "4369:4369"    #RabbitMQ节点和CLI工具使用的对等发现服务
+      - "25672:25672"  #RabbitMQ节点间和CLI工具通信
+      - "15672:15672"  #WebUI
+      - "15692:15692"  #Prometheus
+    ulimits:
+      nofile:
+        soft: "1024000"
+        hard: "1024000"
+      memlock:
+        soft: -1
+        hard: -1
+    environment:
+      - ENABLE_CROND=false
+      - ENABLE_SSHD=true
+      - SSH_ROOT_PASSWORD=Bmzt2016
+      - RABBITMQ_DEFAULT_PORT=5672
+      - RABBITMQ_MANAGEMENT_PORT=15672
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=Bmzt2016_rabbitmq
+      # 日志级别debug,info,warning,error,critcal,none
+      - RABBITMQ_LOG_LEVEL=info
+      # 日志轮转在每周六0点执行也可关闭：D0
+      - RABBITMQ_LOG_ROTATION_DATE=W0D0H0
+      #日志轮转大小：100mb阈值
+      - RABBITMQ_LOG_ROTATION_SIZE=104857600
+      #日志轮转数量最大为5个
+      - RABBITMQ_LOG_ROTATION_COUNT=5
+      #内存限制，当主机为10G内存，0.4=40%=4G
+      # 触发流量控制的内存阈值。可以是绝对的，也可以相对于操作系统可用的RAM量而言.
+      - RABBITMQ_VM_MEMORY_HIGH_WATERMARK_RELATIVE=0.4
+      # RabbitMQ在其上存储数据的分区的磁盘可用空间限制,当可用磁盘空间低于此限制时，将触发流控制。
+      - RABBITMQ_DISK_FREE_LIMIT_ABSOLUTE=100GB
+      #集群需要设置RabbitMQ从节点.erlang.cookie值为主节点.erlang.cookie值
+      - RABBITMQ_ERLANG_COOKIE=BMSMARTWINTHEWORLDHA
+      #集群模式定义
+      - RABBITMQ_CLUSTER_MODE=true
+      - RABBITMQ_HOSTNAME_1_ENABLED=true
+      - RABBITMQ_HOSTNAME_2_ENABLED=false
+      - RABBITMQ_HOSTNAME_3_ENABLED=false
+      #默认这不是一个内存节点，可选成true 开启内存节点,只能在非种子节点2 3中配置
+      - RABBITMQ_RAM_NODE=false
+      #设定DNS 解决节点发现,allinone无需设定,hostname必须设定跟变量一样
+      #节点加入需要rabbit@mq1 
+      #【HOSTNAME_1节点1为种子节点】
+      - RABBITMQ_HOSTNAME_1=mq
+      - RABBITMQ_HOSTNAME_2=mq2
+      - RABBITMQ_HOSTNAME_3=mq3
+      - RABBITMQ_HOSTNAME_1_IP=172.22.247.190
+      - RABBITMQ_HOSTNAME_2_IP=172.22.247.191
+      - RABBITMQ_HOSTNAME_3_IP=172.22.247.195
+    volumes:
+      - /data/volumes/rabbitmq/rabbitmq/data/log:/data/log
+      - /data/volumes/rabbitmq/rabbitmq/data/persist:/data/persist
+      - /data/volumes/rabbitmq/rabbitmq/data/db:/data/db
+    hostname: mq
+    container_name: mq

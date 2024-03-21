@@ -1,0 +1,46 @@
+version: "3.1"
+
+
+#####################################################
+# 先启动MySQL服务器，初始化nacos.sql后，再进行启动nacos节点
+#####################################################
+services:
+  mysql:
+    image: cangku.bmsmart.com.cn/mysql:8.0.26
+    restart: always
+    # docker安全验证
+    cap_add:
+      - SYS_NICE  # CAP_SYS_NICE
+    security_opt:
+      - seccomp:unconfined
+    ulimits:
+      nofile:
+        soft: "1024000"
+        hard: "1024000"
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "3306:3306"
+    environment:
+      - ENABLE_CROND=false
+      - MYSQL_BACKUP_DATABASE_DAYS=7
+      - MYSQL_REMOTE_ADMIN_USER=admin
+      - MYSQL_REMOTE_ADMIN_PASSWORD=Bmzt2016_mysql
+      # mysql属性设置
+      - MYSQL_PORT=3306
+      - MYSQL_MAX_ALLOWED_PACKET=500M
+      #主从复制开关,如果开启请自定义server-id不能重复
+      - MYSQL_ENABLED_MASTER_SLAVES=true
+      - MYSQL_MAX_BINLOG_SIZE=500M
+      - MYSQL_EXPIRE_LOGS_DAYS=30
+      - MYSQL_SERVER_ID=1
+      #主库设置，单机版无需配置，设置关闭
+      - MYSQL_ENABLED_MASTER_NODE=true
+    volumes:
+      - /data/volumes/mysql8/data/log:/data/log
+      - /data/volumes/mysql8/master/data/db:/data/db
+      - /data/volumes/mysql8/master/data/persist:/data/persist
+    hostname: mysql
+    container_name: mysql_master
+#主

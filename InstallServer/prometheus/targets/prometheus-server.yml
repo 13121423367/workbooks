@@ -1,0 +1,5 @@
+- targets:
+  - 122.14.194.189:10691 
+  lables:
+  app: prometheus 
+  job: prometheus

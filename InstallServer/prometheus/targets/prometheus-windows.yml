@@ -1,0 +1,7 @@
+- targets:
+  - 122.14.194.102:10691
+  - 122.14.196.235:10691
+  - 107.150.123.194:10691
+  lables:
+    app: node-exporter 
+    job: Windows-Node

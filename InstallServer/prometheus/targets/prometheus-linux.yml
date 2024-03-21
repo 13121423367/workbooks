@@ -1,0 +1,7 @@
+- targets:
+  - 122.14.194.74:10691
+  - 122.14.196.40:10691 
+  - 117.50.117 119:10691 
+  lables:
+    app: node-exporter 
+    job: Linux_node

@@ -1,0 +1,44 @@
+version: "3.1"
+
+services:
+  #master  
+  #######################
+  # redis-cli -h 172.22.247.190 -p 6379
+  # auth Bmzt2016_redis
+  # info
+  #######################
+  redis_master1:
+    image: cangku.bmsmart.com.cn/redis:6.2.5
+    restart: always
+    ports:
+      - "6379:6379"
+      - "26379:26379"
+    environment:
+      - SSH_ROOT_PASS=Bmzt2016
+      - REDIS_PORT=6379
+      - PROTECTED_MODE=yes
+      - MAX_CLIENTS=10000
+      - REDIS_ENABLE_PASSWORD=true
+      - REDIS_REQUIREPASS=Bmzt2016_redis
+      ##可选开启多线程模式，默认关闭。
+      - REDIS_ENABLE_IO_THREADS=false
+      #线程数一定要和小于CPU核数
+      - REDIS_IO_THREADS=2
+      #集群模式开关
+      - REDIS_ENABLE_CLUSTER=true
+      #是否做主从模式
+      - REDIS_MODE_MASTERSLAVE=true
+      #是否是从节点
+      - REDIS_SLAVE=false
+      - CLUSTER_NODE_TIMEOUT=15000
+      - REDIS_ENABLE_SENTINEL=true
+      - REDIS_SENTINEL_PORT=26379
+      - REDIS_SENTINEL_IP=172.22.247.190
+      #定义主哨兵节点IP及端口
+      - REDIS_SENTINEL_MONITOR=172.22.247.190 6379 2
+    volumes:
+      - /data/volumes/redis_cluster_masterslave/redis_master/data/log:/data/log
+      - /data/volumes/redis_cluster_masterslave/redis_master/data/persist:/data/persist
+      - /data/volumes/redis_cluster_masterslave/redis_master/data/db:/data/db
+    hostname: redis_master
+    container_name: redis-master

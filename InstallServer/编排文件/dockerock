@@ -1,0 +1,226 @@
+#!/bin/bash
+
+#set -e
+
+#make by gengyongnan
+DOCKEROCK_VERSION='0.5.0'
+
+red=$'\e[1;31m'
+green=$'\e[1;32m'
+end=$'\e[0m'
+
+# Help
+function show_help() {
+    echo "Tool for docker developments."
+    echo "make by gengyongnan.Cantgis Geng"
+    echo ""
+    echo "Usage:"
+    echo "  dockerock [options] [COMMANDS] [ARGS...]"
+    echo "  dockerock help"
+    echo ""
+    echo "Options:"
+    echo "  -v, --version       Print version and exit"
+    echo "  -c, --container     Use container commands"
+    echo ""
+    echo "Commands:"
+    echo "  help                Print help"
+    echo "  clean               Remove all <none> image layers"
+    echo "  enter               Enter a running container(linux)"
+    echo "  bash                Enter a running container(mac os)"
+    echo "  sh                  Enter a running container(alpine)"
+    echo "  name                Show all container name"
+    echo "  sec                 Show all Exited container"
+    echo "  vs                  Show dangling volume"
+    echo "  vr                  Remove dangling volume"
+    echo "  ncr                 Remove dangling Network and container"
+    echo "  insert              Copy single file from host to container"
+    echo ""
+    echo "  Command work with -c, e.g.dockerock -c port [container_name]"
+    echo ""
+    echo "  image               Get the based image name of a container"
+    echo "  ip                  Get the  ip of a container"
+    echo "  ips                 Get grep ip of a container"
+    echo "  id                  Get the  id of a container"
+    echo "  port                Get the  port mapping of a container"
+    echo "  volume              Get the  Volumes mapping of a container"
+    echo "  state               Get the  running state of a container"
+    echo ""
+    echo ""
+}
+
+# $1 params is the path of directory
+function show_volume_dangling_ls() {
+    sudo docker volume ls
+    echo "show all volume"
+    sudo docker volume ls -qf dangling=true
+    echo "show dangling volume"
+}
+
+function Remove_volume_dangling() {
+    sudo docker volume rm $(docker volume ls -qf dangling=true)
+    echo "Remove dangling volume"
+}
+
+function Remove_docker_network_and_container_dangling() {
+    sudo docker network ls
+    echo "show all network"
+    sudo docker system prune -f
+    echo "Remove dangling Network and container"
+}
+
+function run_list() {
+    echo "There are ${#IMAGES[@]} images in current path"
+    echo ${IMAGES[@]}
+}
+
+
+optspec=":cntv-:"
+
+while getopts "$optspec" option; do
+    case "$option" in
+        -)
+            case "${OPTARG}" in
+                container)
+                    CONTAINER_INFO='true'
+                    ;;
+                version)
+                    echo ${DOCKEROCK_VERSION}
+                    exit 0
+                    ;;
+                *)
+                    if [ "$OPTERR" = 1 ] && [ "${optspec:0:1}" != ":" ]; then
+                        echo "Unknonw option --${OPTARG}" >&2
+                        exit 1
+                    fi
+                    ;;
+            esac
+            ;;
+        c)
+            CONTAINER_INFO='true'
+            ;;
+        v)
+            echo ${DOCKEROCK_VERSION}
+            exit 0
+            ;;
+        *)
+            if [ "$OPTERR" != 1 ] || [ "${optspec:0:1}" = ":" ]; then
+                echo "Non-option argument: '-${OPTARG}'" >&2
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+shift $((OPTIND -1)) # This tells getopts to move on to the next argument
+
+### End getopts ###
+
+
+### Main loop to process ###
+while [ $# -ne 0 ]; do
+    COMMAND="$1"
+
+    if [[ ${CONTAINER_INFO} != 'true' ]]; then
+        case "$COMMAND" in
+            clean)
+                IMAGE_ID=$(sudo docker images | grep "^<none>" |  awk '{print $3}')
+                if [[ -n ${IMAGE_ID} ]]; then
+                    sudo docker rmi ${IMAGE_ID}
+                else
+                    echo "No images tag with <none>..."
+                fi
+                exit 0
+                ;;
+            enter)
+                PID=$(sudo docker inspect --format {{.State.Pid}} "$2")
+                sudo nsenter --target $PID --mount --uts --ipc --net --pid
+                exit 0
+                ;;
+            bash)
+                PID="$2"
+                sudo docker exec -it $PID  /bin/bash
+                exit 0
+                ;;
+            sh)
+                PID="$2"
+                sudo docker exec -it $PID /bin/sh
+                exit 0
+                ;;
+            name)
+                sudo docker ps -a --format '{{.Names}}'
+                exit 0
+                ;;
+            sec)
+                sudo docker ps -a |grep  'Exited' -i
+                exit 0
+                ;;
+            vs)
+                show_volume_dangling_ls
+                exit 0
+                ;;
+            vr)
+                Remove_volume_dangling
+                exit 0
+                ;;
+            ncr)
+                Remove_docker_network_and_container_dangling
+                exit 0
+                ;;
+            insert)
+                if [[ -n "$2" && -n "$3" && -n "$4" ]]; then
+                    sudo docker exec -i "$2" sh -c "cat > $3" < $4
+                    echo "File $4 copied to $2:$3"
+                else
+                    echo "Please use command in this format:"
+                    echo "dockerock insert <container_name> <container/dest/path/file> <host/src/path/file>"
+                fi
+                exit 0
+                ;;
+            help)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo "Unknown command ${COMMAND}"
+                exit 1
+                ;;
+        esac
+    else
+        case "$COMMAND" in
+            image)
+                [ -n "$2" ] && sudo docker inspect --format '{{ .Config.Image }}' "$2"
+                exit 0
+                ;;
+            id)
+                [ -n "$2" ] && sudo docker inspect --format '{{ .Id }}' "$2"
+                exit 0
+                ;;
+            ip)
+                [ -n "$2" ] && sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' "$2"
+                exit 0
+                ;;
+            ips)
+                [ -n "$2" ] && sudo docker inspect "$2" | grep IPAddress | grep -v null| cut -d '"' -f 4 | head
+                exit 0
+                ;;
+            port)
+                [ -n "$2" ] && sudo docker inspect --format '{{ range $key, $value := .NetworkSettings.Ports}} {{$key}} -> {{(index $value 0).HostPort}} {{end}}' "$2"
+                exit 0
+                ;;
+            volume)
+                [ -n "$2" ] && sudo docker inspect --format '{{ range $key, $value := .Volumes }} {{$key}} -> {{($value)}} {{end}}' "$2"
+                exit 0
+                ;;
+            state)
+                [ -n "$2" ] && sudo docker inspect --format '{{ .State.Running }}' "$2"
+                exit 0
+                ;;
+            *)
+                echo "Unknown command ${COMMAND}"
+                exit 1
+                ;;
+        esac
+    fi
+done
+
+exit 0
